@@ -1,0 +1,4 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:18-alpine:///dch_elearning
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
