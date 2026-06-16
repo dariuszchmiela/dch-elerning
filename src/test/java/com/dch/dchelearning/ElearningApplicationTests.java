@@ -11,9 +11,11 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class ElearningApplicationTests {
 
+    public static final String POSTGRES_18_ALPINE = "postgres:18-alpine";
+
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(POSTGRES_18_ALPINE);
 
     @Test
     void contextLoads() {
