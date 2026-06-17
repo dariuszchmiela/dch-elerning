@@ -14,4 +14,4 @@ spring:
         format_sql: true
 
   liquibase:
-    change-log: classpath:/db/changelog/db.changelog-master.xml
+    change-log: classpath:/db/changelog/000-initial-setup.xml
