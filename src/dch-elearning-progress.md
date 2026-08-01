@@ -1,70 +1,48 @@
 # DCH E-learning — Progress
 
 ## Stos technologiczny
-- Java 25, Spring Boot 4.1.0 (parent zarządza wersjami zależności)
-- PostgreSQL 18 (Docker/Testcontainers)
-- Liquibase (migracje)
-- Testcontainers 2.0.5 (zarządzane przez Spring Boot BOM)
-- JUnit 5 + Mockito + AssertJ
-- jjwt 0.13.0 (JWT)
-- Jackson 3 (`tools.jackson.databind`) — domyślny w Spring Boot 4, współistnieje z Jackson 2 na classpath
-- Docker Compose (Postgres lokalnie)
+- Backend: Java 25, Spring Boot 4.1.0, PostgreSQL 18, Liquibase, Testcontainers 2.0.5, jjwt 0.13.0, Jackson 3
+- Frontend: Next.js 16 (App Router), TypeScript, Tailwind — scaffolded w `/frontend`
+- Docker Compose (Postgres + appka, buildowana z Dockerfile)
 
 ## Środowisko
-- Docker Desktop skonfigurowany, storage driver `overlayfs` (containerd image store wyłączony — powodował błędy `EOF` przy pobieraniu obrazów)
-- Testy integracyjne (`@Testcontainers`, `@ServiceConnection`) działają na realnym Postgresie w kontenerze
-- Boot 4 modularyzacja: `@AutoConfigureMockMvc` wymaga jawnej zależności `spring-boot-starter-webmvc-test`, pakiet zmieniony na `org.springframework.boot.webmvc.test.autoconfigure`
-- `docker-compose.yml` w roocie repo — Postgres 18-alpine, port 5432, wolumen `postgres_data:/var/lib/postgresql` (Postgres 18+ wymaga mountu bez `/data` na końcu — inaczej kontener nie startuje, błąd `pg_ctlcluster`-compatible layout)
+- Docker Desktop: storage driver `overlayfs` (containerd image store wyłączony — powodował błędy `EOF`)
+- `docker-compose.yml` w roocie repo:
+  - `postgres` (18-alpine, wolumen `postgres_data:/var/lib/postgresql` — Postgres 18+ wymaga mountu bez `/data`)
+  - `app` (build z `Dockerfile` w roocie: multi-stage `maven:3.9-eclipse-temurin-25` → `eclipse-temurin:25-jre-alpine`), port 8080, zależny od postgres
+  - `docker compose up --build` odpala całość jednym poleceniem — potwierdzone działające
+- Frontend: `npm run dev` w `/frontend`, Next.js na `localhost:3000`
+- Node.js zainstalowany natywnie (winget), trzeba pamiętać o restarcie terminala/IDE po instalacji żeby złapał PATH
 
-## Moduł `user` — zaimplementowane
+## Moduł `user` (backend) — kompletny
+**Warstwa danych:** `UserEntity`, Liquibase (sekwencja + tabela `users`), `UserRepository`
 
-**Warstwa danych**
-- `UserEntity` — pola: `id`, `email`, `password`, `role`, `version` (optimistic locking), `createdAt`/`updatedAt`
-- Liquibase: sekwencja `users_seq` (increment 50) + tabela `users`
-- `UserRepository extends JpaRepository<UserEntity, Long>` z `findByEmail`
+**Warstwa serwisowa:** `UserService` (register/login/findByEmail, BCrypt, JWT, SLF4J logging), `SecurityConfig`, `JwtProperties`/`JwtService`/`JwtAuthenticationFilter`, `SecurityFilterChainConfig` (stateless, register/login publiczne, reszta chroniona), `CorsProperties`/`CorsConfig` (origin z `application.yml`, nie hardcoded)
 
-**Warstwa serwisowa**
-- `UserService` (z logowaniem SLF4J na każdej istotnej ścieżce):
-  - `register(email, password, role)` — duplikat emaila → `UserAlreadyExistsException` (log warn)
-  - `login(email, password)` — weryfikacja BCrypt, generuje JWT przez `JwtService`; błędne dane → `InvalidCredentialsException` (log warn, bez rozróżniania złego emaila vs hasła)
-  - `findByEmail(email)` — używane przez endpoint `/me`
-- `SecurityConfig` — bean `PasswordEncoder` (`BCryptPasswordEncoder`)
-- `JwtProperties` (`@ConfigurationProperties(prefix="app.jwt")`, record) — `secret`, `expirationMs`
-- `JwtService` — generowanie/parsowanie tokenów
-- `JwtAuthenticationFilter` (`OncePerRequestFilter`) — wyciąga `Bearer` token z nagłówka, uwierzytelnia przez `SecurityContextHolder`; metody krótkie i nazwane (`extractToken`, `isBearerToken`, `authenticateFromToken`), stała `BEARER_PREFIX` zamiast magic number; log debug na nieprawidłowym/wygasłym tokenie
-- `SecurityFilterChainConfig` — CSRF disabled, `SessionCreationPolicy.STATELESS`, `/api/users/register` i `/api/users/login` publiczne (stałe `REGISTER_PATH`/`LOGIN_PATH`), **reszta endpointów wymaga autentykacji** (`anyRequest().authenticated()`), filtr JWT podpięty przed `UsernamePasswordAuthenticationFilter`
+**Warstwa REST:** `POST /api/users/register`, `POST /api/users/login`, `GET /api/users/me` (chroniony), walidacja, `GlobalExceptionHandler` z `ProblemDetail` (409/401/400), wszystko z logowaniem
 
-**Warstwa REST**
-- `POST /api/users/register` → 201 + `UserResponse`
-- `POST /api/users/login` → 200 + `{"token": "..."}`
-- `GET /api/users/me` (chroniony) → 200 + `UserResponse` bieżącego użytkownika
-- `RegisterUserRequest` / `LoginRequest` (record) z walidacją: `@NotBlank`, `@Email`, `@Size(min=8)`
-- `UserResponse` (record) — bez pola hasła
-- `GlobalExceptionHandler` (`@RestControllerAdvice`, z logowaniem warn), `ProblemDetail` (RFC 7807):
-  - `UserAlreadyExistsException` → 409
-  - `InvalidCredentialsException` → 401
-  - `MethodArgumentNotValidException` → 400
+**Testy:** `UserServiceTest`, `ElearningApplicationTests`, `UserControllerIntegrationTest` (`@IntegrationTest` — własna meta-adnotacja); wszystkie zielone
 
-**Testy**
-- `UserServiceTest` (Mockito): register happy path + duplikat emaila
-- `ElearningApplicationTests`: kontekst Springa + Testcontainers Postgres
-- `UserControllerIntegrationTest` (własna meta-adnotacja `@IntegrationTest`):
-  - register → login zwraca token
-  - register → login → `GET /me` z Bearer tokenem zwraca poprawnego użytkownika
-- Wszystkie testy zielone
+**Weryfikacja end-to-end z przeglądarki (dziś):** CORS potwierdzony działający — `fetch` z `localhost:3000` → `localhost:8080` (register → login) przeszedł poprawnie, zwrócony realny token JWT
+
+## Frontend — status
+- Next.js scaffoldowany (`create-next-app`, TypeScript + Tailwind + App Router)
+- Żadnych właściwych stron/komponentów jeszcze nie napisano (tylko domyślny starter)
+- CORS po stronie backendu gotowy i zweryfikowany pod `localhost:3000`
 
 ## Zasady kodowania ustalone w tej sesji (obowiązują dalej)
 - Nigdy `var` — jawne typy
 - Kod czytelny jak książka — krótkie metody, extract method
 - Bez magicznych liczb/stringów — nazwane stałe
-- Logger (SLF4J) od razu w nowych klasach, gdzie ma sens
-- W testach: stałe lokalne per plik, bez wspólnej klasy stałych (premature abstraction)
+- Logger (SLF4J) od razu w nowych klasach
+- W testach: stałe lokalne per plik, bez wspólnej klasy stałych
 - Dedykowane wyjątki + `ProblemDetail` zamiast generycznych wyjątków/map
-
-## Otwarte tematy (odłożone, nie zrobione)
-- `role` jako `String` — rozważyć enum, gdy role będą znane
-- Appka jeszcze nie w tym samym `docker-compose.yml` (na razie tylko Postgres, appka z IDE)
+- Konfigurowalne wartości (JWT secret, CORS origin) przez `@ConfigurationProperties`, nigdy hardcoded
+- Nigdy skróty — zawsze właściwe rozwiązanie, nawet jeśli wolniejsze
+- Przed długim promptem do Claude Code: najpierw mały fragment do potwierdzenia
 
 ## Następny logiczny krok
-1. Dorzucić appkę jako drugi serwis w `docker-compose.yml` (Dockerfile + build)
-2. Kolejny moduł z blueprintu (`course`)
+1. Właściwa strona `/login` w Next.js (formularz podpięty pod już zweryfikowany `fetch`)
+2. Decyzja: jak przechowywać token JWT po stronie frontendu (localStorage vs cookie)
+3. Strona `/register`
+4. Kolejny moduł backendu z blueprintu (`course`) — równolegle z frontendem
