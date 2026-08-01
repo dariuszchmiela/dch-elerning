@@ -1,5 +1,6 @@
 package com.dch.dchelearning.user;
 
+import com.dch.dchelearning.config.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +24,14 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private JwtService jwtService;
+
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder);
+        userService = new UserService(userRepository, passwordEncoder, jwtService);
     }
 
     @Test

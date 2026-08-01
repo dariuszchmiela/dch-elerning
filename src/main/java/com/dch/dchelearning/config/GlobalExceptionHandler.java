@@ -1,5 +1,6 @@
 package com.dch.dchelearning.config;
 
+import com.dch.dchelearning.user.InvalidCredentialsException;
 import com.dch.dchelearning.user.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -22,5 +23,10 @@ public class GlobalExceptionHandler {
             .map(FieldError::getDefaultMessage)
             .collect(java.util.stream.Collectors.joining(", "));
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, errors);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 }

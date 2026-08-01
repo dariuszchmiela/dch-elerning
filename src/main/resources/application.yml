@@ -15,3 +15,8 @@ spring:
 
   liquibase:
     change-log: classpath:/db/changelog/000-initial-setup.xml
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:zmien-mnie-na-dlugi-losowy-sekret-min-32-znaki-produkcyjnie}
+    expiration-ms: 3600000
