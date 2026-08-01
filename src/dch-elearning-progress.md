@@ -8,50 +8,63 @@
 - JUnit 5 + Mockito + AssertJ
 - jjwt 0.13.0 (JWT)
 - Jackson 3 (`tools.jackson.databind`) — domyślny w Spring Boot 4, współistnieje z Jackson 2 na classpath
+- Docker Compose (Postgres lokalnie)
 
 ## Środowisko
 - Docker Desktop skonfigurowany, storage driver `overlayfs` (containerd image store wyłączony — powodował błędy `EOF` przy pobieraniu obrazów)
 - Testy integracyjne (`@Testcontainers`, `@ServiceConnection`) działają na realnym Postgresie w kontenerze
-- Boot 4 modularyzacja: `@AutoConfigureMockMvc` wymaga jawnej zależności `spring-boot-starter-webmvc-test` (nie jest już ciągnięta przez `spring-boot-starter-test`), pakiet zmieniony na `org.springframework.boot.webmvc.test.autoconfigure`
+- Boot 4 modularyzacja: `@AutoConfigureMockMvc` wymaga jawnej zależności `spring-boot-starter-webmvc-test`, pakiet zmieniony na `org.springframework.boot.webmvc.test.autoconfigure`
+- `docker-compose.yml` w roocie repo — Postgres 18-alpine, port 5432, wolumen `postgres_data:/var/lib/postgresql` (Postgres 18+ wymaga mountu bez `/data` na końcu — inaczej kontener nie startuje, błąd `pg_ctlcluster`-compatible layout)
 
 ## Moduł `user` — zaimplementowane
 
 **Warstwa danych**
-- `UserEntity` — pola: `id`, `email`, `password`, `role`, `version` (optimistic locking), `createdAt`/`updatedAt` (Hibernate `@CreationTimestamp`/`@UpdateTimestamp`)
+- `UserEntity` — pola: `id`, `email`, `password`, `role`, `version` (optimistic locking), `createdAt`/`updatedAt`
 - Liquibase: sekwencja `users_seq` (increment 50) + tabela `users`
 - `UserRepository extends JpaRepository<UserEntity, Long>` z `findByEmail`
 
 **Warstwa serwisowa**
-- `UserService`:
-  - `register(email, password, role)` — sprawdza duplikat emaila → `UserAlreadyExistsException`, hashuje hasło (BCrypt), zapisuje
-  - `login(email, password)` — weryfikuje przez `PasswordEncoder.matches()`, generuje token JWT przez `JwtService`; błędne dane → `InvalidCredentialsException` (bez rozróżniania czy zły email czy hasło)
+- `UserService` (z logowaniem SLF4J na każdej istotnej ścieżce):
+  - `register(email, password, role)` — duplikat emaila → `UserAlreadyExistsException` (log warn)
+  - `login(email, password)` — weryfikacja BCrypt, generuje JWT przez `JwtService`; błędne dane → `InvalidCredentialsException` (log warn, bez rozróżniania złego emaila vs hasła)
+  - `findByEmail(email)` — używane przez endpoint `/me`
 - `SecurityConfig` — bean `PasswordEncoder` (`BCryptPasswordEncoder`)
-- `JwtProperties` (`@ConfigurationProperties(prefix="app.jwt")`, record) — `secret`, `expirationMs`; włączone przez `@ConfigurationPropertiesScan` na klasie głównej
-- `JwtService` — generowanie (`generateToken`) i parsowanie (`extractEmail`) tokenów, klucz z `JwtProperties`
-- `SecurityFilterChainConfig` — CSRF wyłączony, `/api/users/register` i `/api/users/login` publiczne; **tymczasowo `anyRequest().permitAll()`** — brak jeszcze filtra weryfikującego JWT na innych endpointach
+- `JwtProperties` (`@ConfigurationProperties(prefix="app.jwt")`, record) — `secret`, `expirationMs`
+- `JwtService` — generowanie/parsowanie tokenów
+- `JwtAuthenticationFilter` (`OncePerRequestFilter`) — wyciąga `Bearer` token z nagłówka, uwierzytelnia przez `SecurityContextHolder`; metody krótkie i nazwane (`extractToken`, `isBearerToken`, `authenticateFromToken`), stała `BEARER_PREFIX` zamiast magic number; log debug na nieprawidłowym/wygasłym tokenie
+- `SecurityFilterChainConfig` — CSRF disabled, `SessionCreationPolicy.STATELESS`, `/api/users/register` i `/api/users/login` publiczne (stałe `REGISTER_PATH`/`LOGIN_PATH`), **reszta endpointów wymaga autentykacji** (`anyRequest().authenticated()`), filtr JWT podpięty przed `UsernamePasswordAuthenticationFilter`
 
 **Warstwa REST**
 - `POST /api/users/register` → 201 + `UserResponse`
 - `POST /api/users/login` → 200 + `{"token": "..."}`
-- `RegisterUserRequest` / `LoginRequest` (record) z walidacją: `@NotBlank`, `@Email`, `@Size(min=8)` na hasło
-- `UserResponse` (record) — response DTO bez pola hasła
-- `GlobalExceptionHandler` (`@RestControllerAdvice`), format `ProblemDetail` (RFC 7807):
-  - `UserAlreadyExistsException` → 409 Conflict
-  - `InvalidCredentialsException` → 401 Unauthorized
-  - `MethodArgumentNotValidException` (błędy walidacji) → 400 Bad Request
+- `GET /api/users/me` (chroniony) → 200 + `UserResponse` bieżącego użytkownika
+- `RegisterUserRequest` / `LoginRequest` (record) z walidacją: `@NotBlank`, `@Email`, `@Size(min=8)`
+- `UserResponse` (record) — bez pola hasła
+- `GlobalExceptionHandler` (`@RestControllerAdvice`, z logowaniem warn), `ProblemDetail` (RFC 7807):
+  - `UserAlreadyExistsException` → 409
+  - `InvalidCredentialsException` → 401
+  - `MethodArgumentNotValidException` → 400
 
 **Testy**
-- `UserServiceTest` (Mockito): register happy path + duplikat emaila; wszystkie zielone
+- `UserServiceTest` (Mockito): register happy path + duplikat emaila
 - `ElearningApplicationTests`: kontekst Springa + Testcontainers Postgres
-- `UserControllerIntegrationTest` (`@IntegrationTest` — własna meta-adnotacja łącząca `@SpringBootTest`+`@AutoConfigureMockMvc`+`@Testcontainers`+`@ActiveProfiles("test")`): pełny flow register → login zwraca token, na realnym Postgresie; zielony
-- Response DTO w testach mapowane przez `JsonMapper` (Jackson 3), nie stary `ObjectMapper`
+- `UserControllerIntegrationTest` (własna meta-adnotacja `@IntegrationTest`):
+  - register → login zwraca token
+  - register → login → `GET /me` z Bearer tokenem zwraca poprawnego użytkownika
+- Wszystkie testy zielone
+
+## Zasady kodowania ustalone w tej sesji (obowiązują dalej)
+- Nigdy `var` — jawne typy
+- Kod czytelny jak książka — krótkie metody, extract method
+- Bez magicznych liczb/stringów — nazwane stałe
+- Logger (SLF4J) od razu w nowych klasach, gdzie ma sens
+- W testach: stałe lokalne per plik, bez wspólnej klasy stałych (premature abstraction)
+- Dedykowane wyjątki + `ProblemDetail` zamiast generycznych wyjątków/map
 
 ## Otwarte tematy (odłożone, nie zrobione)
-- `role` jako `String` — rozważyć enum (`STUDENT`/`INSTRUCTOR`/`ADMIN`), gdy role będą znane
-- Filtr JWT chroniący endpointy — obecnie wszystko publiczne (`anyRequest().permitAll()`)
-- Docker Compose do lokalnego odpalania całości (Postgres + appka) — nieporuszone
+- `role` jako `String` — rozważyć enum, gdy role będą znane
+- Appka jeszcze nie w tym samym `docker-compose.yml` (na razie tylko Postgres, appka z IDE)
 
 ## Następny logiczny krok
-1. Filtr weryfikujący JWT (`OncePerRequestFilter`) i podłączenie go do `SecurityFilterChain`
-2. Pierwszy chroniony endpoint, np. `GET /api/users/me` (profil zalogowanego użytkownika)
-3. Alternatywnie: przejście do kolejnego modułu z blueprintu (`course`)
+1. Dorzucić appkę jako drugi serwis w `docker-compose.yml` (Dockerfile + build)
+2. Kolejny moduł z blueprintu (`course`)
