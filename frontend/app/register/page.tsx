@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {useState} from "react";
 
 type Role = "STUDENT" | "INSTRUCTOR";
 
@@ -11,7 +11,7 @@ export default function RegisterPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
-    async function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>)  {
         e.preventDefault();
         setError(null);
 
