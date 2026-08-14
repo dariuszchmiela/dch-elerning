@@ -15,3 +15,7 @@ async function handleSubmit(e: React.FormEvent) {
     setError(null);
 }
 
+export default function RegisterPage() {
+
+}
+
