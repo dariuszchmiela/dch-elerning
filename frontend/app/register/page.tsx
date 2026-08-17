@@ -10,6 +10,7 @@ export default function RegisterPage() {
     const [role, setRole] = useState<Role>("STUDENT");
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>)  {
         e.preventDefault();
