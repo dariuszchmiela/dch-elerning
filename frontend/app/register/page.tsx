@@ -46,7 +46,7 @@ export default function RegisterPage() {
             </select>
             {error && <p>{error}</p>}
             {success && <p>Zarejestrowano pomyślnie!</p>}
-            <button type="submit">Register</button>
+            <button type="submit" disabled={loading}>{loading ? "Registering..." : "Register"}</button>
         </form>
     );
 }
