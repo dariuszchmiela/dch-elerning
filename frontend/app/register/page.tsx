@@ -12,24 +12,28 @@ export default function RegisterPage() {
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>)  {
+    async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
         e.preventDefault();
         setError(null);
         setLoading(true);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, role }),
-        });
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password, role }),
+            });
 
-        if (!response.ok) {
-            const problem = await response.json();
-            setError(problem.detail ?? "Registration failed");
-            return;
+            if (!response.ok) {
+                const problem = await response.json();
+                setError(problem.detail ?? "Registration failed");
+                return;
+            }
+
+            setSuccess(true);
+        } finally {
+            setLoading(false);
         }
-
-        setSuccess(true);
     }
 
     return (
