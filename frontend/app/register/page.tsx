@@ -15,6 +15,7 @@ export default function RegisterPage() {
     async function handleSubmit(e: React.SubmitEvent<HTMLFormElement>)  {
         e.preventDefault();
         setError(null);
+        setLoading(true);
 
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/register`, {
             method: "POST",
