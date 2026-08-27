@@ -34,7 +34,7 @@ export default function LoginPage() {
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="border border-gray-300 rounded px-3 py-2" />
       {error && <p>{error}</p>}
       {success && <p>Zalogowano pomyślnie!</p>}
-      <button type="submit">Log in</button>
+        <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">Log in</button>
     </form>
   );
 }
