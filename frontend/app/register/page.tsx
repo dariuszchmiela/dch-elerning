@@ -44,9 +44,9 @@ export default function RegisterPage() {
                 <option value="STUDENT">Student</option>
                 <option value="INSTRUCTOR">Instructor</option>
             </select>
-            {error && <p>{error}</p>}
-            {success && <p>Zarejestrowano pomyślnie!</p>}
-            <button type="submit" disabled={loading}>{loading ? "Registering..." : "Register"}</button>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            {success && <p className="text-green-600 text-sm">Zarejestrowano pomyślnie!</p>}
+            <button type="submit" disabled={loading} className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700 disabled:bg-gray-400">{loading ? "Registering..." : "Register"}</button>
         </form>
     );
 }
