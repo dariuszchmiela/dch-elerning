@@ -32,8 +32,8 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 max-w-sm mx-auto mt-20 p-6">
         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="border border-gray-300 rounded px-3 py-2" />
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" className="border border-gray-300 rounded px-3 py-2" />
-      {error && <p>{error}</p>}
-      {success && <p>Zalogowano pomyślnie!</p>}
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {success && <p className="text-green-600 text-sm">Zalogowano pomyślnie!</p>}
         <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 hover:bg-blue-700">Log in</button>
     </form>
   );
