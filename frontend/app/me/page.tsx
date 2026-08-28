@@ -7,7 +7,13 @@ const [error, setError] = useState<string | null>(null);
 const [loading, setLoading] = useState(true);
 
 useEffect(() => {
-    // todo
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+        setError("Brak tokenu — zaloguj się");
+        setLoading(false);
+        return;
+    }
 }, []);
 
 type User = {
