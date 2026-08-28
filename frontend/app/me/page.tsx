@@ -6,6 +6,10 @@ const [user, setUser] = useState<User | null>(null);
 const [error, setError] = useState<string | null>(null);
 const [loading, setLoading] = useState(true);
 
+useEffect(() => {
+    // todo
+}, []);
+
 type User = {
     id: number;
     email: string;
