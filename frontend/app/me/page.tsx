@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+const [user, setUser] = useState<User | null>(null);
+const [error, setError] = useState<string | null>(null);
+const [loading, setLoading] = useState(true);
 
 type User = {
     id: number;
