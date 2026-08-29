@@ -18,6 +18,9 @@ export default function MePage() {
         const token = localStorage.getItem("token");
 
         if (!token) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
             setError("No token — please log in");
             setLoading(false);
             return;
