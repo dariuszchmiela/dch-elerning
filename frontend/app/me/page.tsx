@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 
 type User = {
     id: number;
@@ -18,12 +18,40 @@ export default function MePage() {
         const token = localStorage.getItem("token");
 
         if (!token) {
-            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
             setError("No token — please log in");
             setLoading(false);
             return;
         }
+
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+        })
+            .then(async (response) => {
+                if (!response.ok) {
+                    const problem = await response.json();
+                    setError(problem.detail ?? "Failed to load profile");
+                    return;
+                }
+                setUser(await response.json());
+            })
+            .catch(() => setError("Network error"))
+            .finally(() => setLoading(false));
     }, []);
+
+    if (loading) {
+        return <p className="mt-20 text-center">Loading...</p>;
+    }
+
+    if (error) {
+        return <p className="mt-20 text-center text-red-600">{error}</p>;
+    }
+
+    return (
+        <div className="flex flex-col gap-2 max-w-sm mx-auto mt-20 p-6">
+            <h1 className="text-xl font-bold">My profile</h1>
+            <p><span className="font-semibold">Email:</span> {user?.email}</p>
+            <p><span className="font-semibold">Role:</span> {user?.role}</p>
+            <p><span className="font-semibold">Member since:</span> {user?.createdAt}</p>
+        </div>
+    );
 }
