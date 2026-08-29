@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type User = {
     id: number;
@@ -10,6 +11,7 @@ type User = {
 };
 
 export default function MePage() {
+    const router = useRouter();
     const [user, setUser] = useState<User | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -38,6 +40,11 @@ export default function MePage() {
             .finally(() => setLoading(false));
     }, []);
 
+    function handleLogout() {
+        localStorage.removeItem("token");
+        router.push("/login");
+    }
+
     if (loading) {
         return <p className="mt-20 text-center">Loading...</p>;
     }
@@ -52,6 +59,9 @@ export default function MePage() {
             <p><span className="font-semibold">Email:</span> {user?.email}</p>
             <p><span className="font-semibold">Role:</span> {user?.role}</p>
             <p><span className="font-semibold">Member since:</span> {user?.createdAt}</p>
+            <button onClick={handleLogout} className="bg-gray-200 rounded px-4 py-2 mt-4 hover:bg-gray-300">
+                Log out
+            </button>
         </div>
     );
 }
