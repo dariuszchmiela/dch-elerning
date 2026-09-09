@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -21,6 +22,7 @@ public class UserService {
         this.jwtService = jwtService;
     }
 
+    @Transactional
     public UserEntity register(String email, String rawPassword, String role) {
         if (userRepository.findByEmail(email).isPresent()) {
             log.warn("Registration attempt with existing email: {}", email);
@@ -33,6 +35,7 @@ public class UserService {
         return saved;
     }
 
+    @Transactional(readOnly = true)
     public String login(String email, String rawPassword) {
         UserEntity user = userRepository.findByEmail(email)
             .orElseThrow(() -> {
@@ -49,6 +52,7 @@ public class UserService {
         return jwtService.generateToken(user.getEmail());
     }
 
+    @Transactional(readOnly = true)
     public UserEntity findByEmail(String email) {
         return userRepository.findByEmail(email)
             .orElseThrow(() -> {
