@@ -58,7 +58,7 @@ export default function MePage() {
             <h1 className="text-xl font-bold">My profile</h1>
             <p><span className="font-semibold">Email:</span> {user?.email}</p>
             <p><span className="font-semibold">Role:</span> {user?.role}</p>
-            <p><span className="font-semibold">Member since:</span> {user?.createdAt}</p>
+            <p><span className="font-semibold">Member since:</span> {user && new Date(user.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</p>
             <button onClick={handleLogout} className="bg-gray-200 rounded px-4 py-2 mt-4 hover:bg-gray-300">
                 Log out
             </button>
