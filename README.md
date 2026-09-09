@@ -93,9 +93,9 @@ All errors use RFC 7807 `ProblemDetail`:
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | `/api/users/register` | — | Create account |
-| POST | `/api/users/login` | — | Obtain JWT |
-| GET | `/api/users/me` | Bearer | Current user profile |
+| POST | `/api/v1/users/register` | — | Create account |
+| POST | `/api/v1/users/login` | — | Obtain JWT |
+| GET | `/api/v1/users/me` | Bearer | Current user profile |
 
 ## Frontend pages
 
