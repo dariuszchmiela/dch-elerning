@@ -13,8 +13,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @EnableWebSecurity
 public class SecurityFilterChainConfig {
 
-    private static final String REGISTER_PATH = "/api/users/register";
-    private static final String LOGIN_PATH = "/api/users/login";
+    private static final String REGISTER_PATH = "/api/v1/users/register";
+    private static final String LOGIN_PATH = "/api/v1/users/login";
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter, CorsConfigurationSource corsConfigurationSource) throws Exception {

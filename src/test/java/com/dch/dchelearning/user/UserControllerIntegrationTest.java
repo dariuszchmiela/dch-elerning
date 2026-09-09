@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.notNullValue;
 @IntegrationTest
 class UserControllerIntegrationTest {
 
-    private static final String REGISTER_PATH = "/api/users/register";
-    private static final String LOGIN_PATH = "/api/users/login";
-    private static final String ME_PATH = "/api/users/me";
+    private static final String REGISTER_PATH = "/api/v1/users/register";
+    private static final String LOGIN_PATH = "/api/v1/users/login";
+    private static final String ME_PATH = "/api/v1/users/me";
 
     @Container
     @ServiceConnection

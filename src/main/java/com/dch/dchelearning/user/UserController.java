@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
 public class UserController {
 
     private final UserService userService;
@@ -22,19 +22,19 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
+    @PostMapping(value = "/{version}/users/register", version = "1.0")
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterUserRequest request) {
         UserEntity user = userService.register(request.email(), request.password(), request.role());
         return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.fromEntity(user));
     }
 
-    @PostMapping("/login")
+    @PostMapping(value = "/{version}/users/login", version = "1.0")
     public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest request) {
         String token = userService.login(request.email(), request.password());
         return ResponseEntity.ok(Map.of("token", token));
     }
 
-    @GetMapping("/me")
+    @GetMapping(value = "/{version}/users/me", version = "1.0")
     public ResponseEntity<UserResponse> me(Authentication authentication) {
         String email = authentication.getName();
         UserEntity user = userService.findByEmail(email);
